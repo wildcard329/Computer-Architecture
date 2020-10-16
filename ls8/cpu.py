@@ -35,6 +35,7 @@ class CPU:
         self.cmds[JEQ] = self.JEQ_val
         self.cmds[JNE] = self.JNE_val
         self.cmds[CMP] = self.CMP_val
+        self.cmds[JMP] = self.JMP_val
         self.cmds[PUSH] = self.PUSH_val
 
     def load(self):
@@ -89,14 +90,11 @@ class CPU:
             self.reg[reg_a] //= self.reg[reg_b]
         elif op == 'CMP':
             if reg_a == reg_b:
-                self.fl | 0b001
-                self.fl & 0b001
+                self.fl = 1
             elif reg_a < reg_b:
-                self.fl | 0b100
-                self.fl & 0b100
+                self.fl = 4
             elif reg_a > reg_b:
-                self.fl | 0b010
-                self.fl & 0b010
+                self.fl = 2
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -153,14 +151,18 @@ class CPU:
         self.pc = self.reg[arg1]
 
     def JNE_val(self, arg1, arg2):
-        if self.fl == 0:
-            print('jne')
+        if self.fl & 0b001 == 0b000:
+            self.fl = 0
             self.JMP_val(arg1, arg2)
+        else:
+            self.pc += 2
 
     def JEQ_val(self, arg1, arg2):
-        if self.fl == 1:
-            print('jeq')
+        if self.fl & 0b001 == 0b001:
+            self.fl = 0
             self.JMP_val(arg1, arg2)
+        else:
+            self.pc += 2
 
     def CMP_val(self, arg1, arg2):
         reg_a = self.reg[arg1]
@@ -177,8 +179,6 @@ class CPU:
 
             if ir in self.cmds:
                 self.cmds[ir](argA, argB)
-                # print(self.reg[0])
-                # input()
-            if ir is not None:
+            if ir is not None and ir & 0b00010000 == 0:
                 i_len = ((ir & 0b11000000) >> 6) + 1
                 self.pc += i_len
